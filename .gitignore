@@ -1,0 +1,37 @@
+# Original notebook with embedded credentials — a redacted copy lives in model/notebooks/
+Proyecto_final_Visión_Computacional_con_Deep_Learning_Grupo_3.ipynb
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Data & artifacts (weights tracked via Git LFS — see .gitattributes)
+model/datasets/
+runs/
+
+# Databases
+*.db
+*.sqlite3
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
