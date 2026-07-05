@@ -93,7 +93,7 @@ Paginated history, newest first. `limit` ≤ 100.
 }
 ```
 
-`thumbnail_b64` is a small (≤160 px) JPEG preview, base64-encoded. The full
+`thumbnail_b64` is a small (≤512 px) JPEG preview, base64-encoded. The full
 radiograph is never stored — only its SHA-256, dimensions, and this thumbnail.
 
 ### `GET /v1/inferences/{inference_id}`

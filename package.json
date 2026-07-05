@@ -1,0 +1,12 @@
+{
+  "name": "ortho-vision-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo convenience scripts — the real projects live in backend/ and mobile/. No workspaces on purpose (Metro must resolve from mobile/).",
+  "scripts": {
+    "android": "npm --prefix mobile run android",
+    "mobile": "npm --prefix mobile run start",
+    "backend": "cd backend && .venv\\Scripts\\uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "backend:test": "cd backend && .venv\\Scripts\\python -m pytest"
+  }
+}

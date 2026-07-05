@@ -43,7 +43,7 @@ export default function HistoryScreen() {
           <ChevronLeftIcon color={colors.textSecondary} />
         </Pressable>
         <Text style={styles.title}>History</Text>
-        <View style={styles.iconButton} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <FlatList
@@ -130,6 +130,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerSpacer: { width: 42, height: 42 },
   pressed: { opacity: 0.65 },
   list: { padding: spacing.lg, gap: spacing.sm, flexGrow: 1 },
   row: {

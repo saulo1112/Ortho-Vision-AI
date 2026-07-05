@@ -46,7 +46,7 @@ export default function InferenceDetailScreen() {
             <ChevronLeftIcon color={colors.textSecondary} />
           </Pressable>
           <Text style={styles.title}>Analysis</Text>
-          <View style={styles.iconButton} />
+          <View style={styles.headerSpacer} />
         </View>
 
         {!detail && !error && <ActivityIndicator color={colors.primary} style={styles.loader} />}
@@ -81,7 +81,6 @@ export default function InferenceDetailScreen() {
                 value={`${detail.image.width}×${detail.image.height}px`}
               />
               <MetaRow label="Server time" value={`${detail.timing_ms.total} ms`} />
-              <MetaRow label="SHA-256" value={`${detail.image.sha256.slice(0, 16)}…`} mono />
             </View>
           </>
         )}
@@ -114,6 +113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerSpacer: { width: 42, height: 42 },
   pressed: { opacity: 0.65 },
   loader: { marginTop: 60 },
   error: { color: colors.danger, textAlign: 'center', marginTop: 40, fontFamily: fonts?.sans },

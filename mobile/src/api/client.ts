@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { File } from 'expo-file-system';
 
 import type {
   HealthResponse,
@@ -8,19 +9,73 @@ import type {
 } from './types';
 
 /**
- * Base URL resolution:
- * 1. `expo.extra.apiUrl` in app.json (set this for the deployed backend);
- * 2. in dev, the Metro host IP with port 8000 — so a physical phone on the
- *    same Wi-Fi reaches the backend running on the dev machine with zero config.
+ * The backend can live in several places depending on how the app runs:
+ *
+ *   - `expo.extra.apiUrl` in app.json — a deployed backend (Render);
+ *   - `http://localhost:8000` — dev build over USB with `adb reverse
+ *     tcp:8000 tcp:8000` (the `npm run android` script sets this up);
+ *   - `http://<metro-host-ip>:8000` — phone and dev machine on the same
+ *     Wi-Fi. Note the Metro host IP can point at a virtual adapter
+ *     (VirtualBox, WSL) that the phone cannot reach, so this is the last
+ *     candidate, not the first.
+ *
+ * Instead of guessing, we probe each candidate's /health once and stick with
+ * the first that answers. The probe result is memoized for the app session.
  */
-function resolveBaseUrl(): string {
+function candidateUrls(): string[] {
+  const candidates: string[] = [];
   const configured = Constants.expoConfig?.extra?.apiUrl as string | undefined;
-  if (configured) return configured.replace(/\/$/, '');
+  if (configured) candidates.push(configured.replace(/\/$/, ''));
+
+  candidates.push('http://localhost:8000');
+
   const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  return host ? `http://${host}:8000` : 'http://localhost:8000';
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    candidates.push(`http://${host}:8000`);
+  }
+  return candidates;
 }
 
-export const BASE_URL = resolveBaseUrl();
+async function probe(url: string, timeoutMs = 2500): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${url}/health`, { signal: controller.signal });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+let baseUrlPromise: Promise<string> | null = null;
+
+export function getBaseUrl(): Promise<string> {
+  if (!baseUrlPromise) {
+    baseUrlPromise = (async () => {
+      const candidates = candidateUrls();
+      for (const url of candidates) {
+        const ok = await probe(url);
+        console.log(`[api] probe ${url}/health -> ${ok ? 'OK' : 'unreachable'}`);
+        if (ok) return url;
+      }
+      // Nothing answered: forget the memo so the next call re-probes
+      // (the server may simply not be up yet), and report what was tried.
+      baseUrlPromise = null;
+      throw new ApiError(
+        0,
+        `Cannot reach the server. Tried: ${candidates.join(', ')}. ` +
+          'Is the backend running? (see README — "Test on a physical device")',
+      );
+    })();
+    // If resolution fails, allow retrying instead of caching the rejection.
+    baseUrlPromise.catch(() => {
+      baseUrlPromise = null;
+    });
+  }
+  return baseUrlPromise;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -32,11 +87,14 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const baseUrl = await getBaseUrl();
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}${path}`, init);
-  } catch {
-    throw new ApiError(0, `Cannot reach the server at ${BASE_URL}`);
+    res = await fetch(`${baseUrl}${path}`, init);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.log(`[api] ${init?.method ?? 'GET'} ${baseUrl}${path} failed: ${detail}`);
+    throw new ApiError(0, `Cannot reach the server at ${baseUrl} — ${detail}`);
   }
   if (!res.ok) {
     let detail = `Request failed (${res.status})`;
@@ -55,9 +113,18 @@ export function getHealth(): Promise<HealthResponse> {
 }
 
 export function predictImage(uri: string): Promise<PredictResponse> {
+  // Since SDK 57 the global fetch is expo/fetch (WinterCG), which rejects the
+  // classic React Native {uri, name, type} FormData part. The File class from
+  // the new expo-file-system implements Blob and wraps the picker's file:// URI.
+  let file: File;
+  try {
+    file = new File(uri);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new ApiError(0, `Cannot open the selected image (${uri}): ${detail}`);
+  }
   const form = new FormData();
-  // React Native FormData file part — not a browser Blob.
-  form.append('image', { uri, name: 'radiograph.jpg', type: 'image/jpeg' } as unknown as Blob);
+  form.append('image', file as unknown as Blob, 'radiograph.jpg');
   return request('/v1/predict', { method: 'POST', body: form });
 }
 

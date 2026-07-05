@@ -7,10 +7,12 @@ FastAPI + ONNX Runtime inference server. Torch-free by design.
 ```bash
 py -3.11 -m venv .venv
 .venv/Scripts/pip install -r requirements.txt
-.venv/Scripts/uvicorn app.main:app --reload
+.venv/Scripts/uvicorn app.main:app --reload --host 0.0.0.0
 ```
 
-Swagger UI at http://localhost:8000/docs.
+Swagger UI at http://localhost:8000/docs. The `--host 0.0.0.0` flag exposes
+the API on the LAN so a physical phone can reach it (omit it if you only need
+localhost, e.g. when testing over USB with `adb reverse`).
 
 ## Test
 

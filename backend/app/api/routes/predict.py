@@ -26,7 +26,7 @@ def _make_thumbnail(img, side: int) -> bytes:
     h, w = img.shape[:2]
     scale = side / max(h, w)
     small = cv2.resize(img, (max(1, round(w * scale)), max(1, round(h * scale))))
-    ok, buf = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    ok, buf = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 80])
     return buf.tobytes() if ok else b""
 
 

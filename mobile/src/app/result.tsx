@@ -32,7 +32,7 @@ export default function ResultScreen() {
             <ChevronLeftIcon color={colors.textSecondary} />
           </Pressable>
           <Text style={styles.title}>Result</Text>
-          <View style={styles.iconButton} />
+          <View style={styles.headerSpacer} />
         </View>
 
         <MaskOverlay
@@ -110,6 +110,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerSpacer: { width: 42, height: 42 },
   pressed: { opacity: 0.65 },
   statsRow: { flexDirection: 'row', gap: spacing.sm },
   stat: {

@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     conf_threshold: float = 0.5
     iou_threshold: float = 0.7
     max_upload_bytes: int = 10 * 1024 * 1024
-    thumbnail_side: int = 160
+    # 512px keeps history/detail previews crisp on 3x phone screens while the
+    # full radiograph is still never stored.
+    thumbnail_side: int = 512
 
     cors_origins: list[str] = ["*"]
 

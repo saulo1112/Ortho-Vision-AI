@@ -76,8 +76,9 @@ cd model
 py -3.11 -m venv .venv && .venv/Scripts/pip install -r requirements.txt
 .venv/Scripts/python export_onnx.py            # writes weights/best.onnx
 
-# Optional: reproduce the parity report
-ROBOFLOW_API_KEY=xxxx .venv/Scripts/python download_dataset.py
+# Optional: reproduce the parity report (requires a Roboflow API key)
+cp .env.example .env && $EDITOR .env           # set ROBOFLOW_API_KEY (gitignored)
+.venv/Scripts/python download_dataset.py
 .venv/Scripts/python validate_parity.py        # writes docs/onnx-parity.md
 ```
 
@@ -86,8 +87,9 @@ ROBOFLOW_API_KEY=xxxx .venv/Scripts/python download_dataset.py
 ```bash
 cd backend
 py -3.11 -m venv .venv && .venv/Scripts/pip install -r requirements.txt
-.venv/Scripts/uvicorn app.main:app --reload    # http://localhost:8000/docs
-.venv/Scripts/python -m pytest                 # 7 end-to-end tests
+# --host 0.0.0.0 exposes the API on your LAN so a physical phone can reach it
+.venv/Scripts/uvicorn app.main:app --reload --host 0.0.0.0   # http://localhost:8000/docs
+.venv/Scripts/python -m pytest                               # 7 end-to-end tests
 ```
 
 Or with Docker (build from the repo root so the weights are included):
@@ -102,12 +104,32 @@ docker run -p 8000:8000 orthovision-api
 ```bash
 cd mobile
 npm install
-npx expo start        # scan the QR with Expo Go (Android/iOS)
+npm run android       # dev build on a USB-connected Android device
 ```
 
-On a physical device the app auto-discovers the backend at
-`http://<your-dev-machine-ip>:8000` (same Wi-Fi). For a deployed backend, set
-`expo.extra.apiUrl` in `mobile/app.json`.
+> Note: Expo Go only supports a single SDK version, so an outdated Expo Go
+> from the store may refuse this project (SDK 57). The dev build
+> (`npm run android`) is the standard workflow here and enables all native
+> modules. Requires Android Studio / SDK; always run it from `mobile/`, not
+> the repo root.
+
+#### Test on a physical device
+
+The app probes candidate backend URLs at startup (`/health`) and uses the
+first one that answers, in this order:
+
+1. `expo.extra.apiUrl` from `mobile/app.json` — set this for a deployed
+   backend (e.g. your Render URL).
+2. `http://localhost:8000` — works over **USB**: `npm run android` runs
+   `adb reverse tcp:8000 tcp:8000`, which tunnels the phone's port 8000 to
+   your dev machine. Immune to firewalls and multi-adapter setups.
+3. `http://<metro-host-ip>:8000` — same **Wi-Fi** network. Requires the
+   backend started with `--host 0.0.0.0` and Windows Firewall allowing
+   inbound TCP 8000 (`netsh advfirewall firewall add rule
+   name="OrthoVision API" dir=in action=allow protocol=TCP localport=8000`,
+   from an elevated shell).
+
+Either way, start the backend first (`npm run backend` from the repo root).
 
 ## Deployment
 
