@@ -1,12 +1,15 @@
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
-import { listInferences } from '../api/client';
+import { deleteInference, listInferences } from '../api/client';
 import type { InferenceSummary } from '../api/types';
-import { ChevronLeftIcon } from '../components/icons';
+import { ChevronLeftIcon, TrashIcon } from '../components/icons';
 import { percent, timeAgo } from '../lib/format';
 import { classStyle } from '../theme/classes';
 import { colors, fonts, radius, spacing } from '../theme/tokens';
@@ -31,6 +34,24 @@ export default function HistoryScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      // Optimistic: remove locally first so the swipe feels instant, like
+      // deleting a photo. If the backend call fails, put it back and surface
+      // the error via a fresh load.
+      const removed = items.find((i) => i.inference_id === id);
+      setItems((prev) => prev.filter((i) => i.inference_id !== id));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try {
+        await deleteInference(id);
+      } catch (err) {
+        if (removed) setItems((prev) => [...prev, removed].sort(byCreatedAtDesc));
+        setError(err instanceof Error ? err.message : 'Could not delete');
+      }
+    },
+    [items],
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -68,13 +89,24 @@ export default function HistoryScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }) => <HistoryRow item={item} />}
+        renderItem={({ item }) => <HistoryRow item={item} onDelete={handleDelete} />}
       />
     </SafeAreaView>
   );
 }
 
-function HistoryRow({ item }: { item: InferenceSummary }) {
+function byCreatedAtDesc(a: InferenceSummary, b: InferenceSummary) {
+  return b.created_at.localeCompare(a.created_at);
+}
+
+function HistoryRow({
+  item,
+  onDelete,
+}: {
+  item: InferenceSummary;
+  onDelete: (id: string) => void;
+}) {
+  const swipeableRef = useRef<SwipeableMethods>(null);
   const classNames = Object.keys(item.counts);
   const label =
     classNames.length > 0
@@ -82,33 +114,64 @@ function HistoryRow({ item }: { item: InferenceSummary }) {
       : 'No detections';
   const dotColor = classNames.length > 0 ? classStyle(classNames[0]).color : colors.textTertiary;
 
+  const renderRightActions = useCallback(
+    (progress: SharedValue<number>) => {
+      const style = useAnimatedStyle(() => ({
+        transform: [{ scale: Math.min(progress.value, 1) }],
+      }));
+      return (
+        <Animated.View style={[styles.deleteAction, style]}>
+          <Pressable
+            onPress={() => {
+              swipeableRef.current?.close();
+              onDelete(item.inference_id);
+            }}
+            style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+            hitSlop={8}
+          >
+            <TrashIcon color="#FFFFFF" size={20} />
+          </Pressable>
+        </Animated.View>
+      );
+    },
+    [item.inference_id, onDelete],
+  );
+
   return (
-    <Pressable
-      onPress={() => router.push(`/inference/${item.inference_id}`)}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      rightThreshold={44}
+      friction={1.7}
+      overshootRight={false}
     >
-      {item.thumbnail_b64 ? (
-        <Image
-          source={{ uri: `data:image/jpeg;base64,${item.thumbnail_b64}` }}
-          style={styles.thumb}
-          contentFit="cover"
-        />
-      ) : (
-        <View style={[styles.thumb, styles.thumbPlaceholder]} />
-      )}
-      <View style={styles.rowBody}>
-        <View style={styles.rowTitleLine}>
-          <View style={[styles.dot, { backgroundColor: dotColor }]} />
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {label}
+      <Pressable
+        onPress={() => router.push(`/inference/${item.inference_id}`)}
+        style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      >
+        {item.thumbnail_b64 ? (
+          <Image
+            source={{ uri: `data:image/jpeg;base64,${item.thumbnail_b64}` }}
+            style={styles.thumb}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.thumb, styles.thumbPlaceholder]} />
+        )}
+        <View style={styles.rowBody}>
+          <View style={styles.rowTitleLine}>
+            <View style={[styles.dot, { backgroundColor: dotColor }]} />
+            <Text style={styles.rowTitle} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+          <Text style={styles.rowMeta}>
+            {timeAgo(item.created_at)}
+            {item.max_confidence != null ? `  ·  ${percent(item.max_confidence)} confidence` : ''}
           </Text>
         </View>
-        <Text style={styles.rowMeta}>
-          {timeAgo(item.created_at)}
-          {item.max_confidence != null ? `  ·  ${percent(item.max_confidence)} confidence` : ''}
-        </Text>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Swipeable>
   );
 }
 
@@ -153,4 +216,18 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: spacing.sm, marginTop: 80 },
   emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '600', fontFamily: fonts?.sans },
   emptyCopy: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', fontFamily: fonts?.sans },
+  deleteAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 72,
+  },
+  deleteButton: {
+    flex: 1,
+    alignSelf: 'stretch',
+    marginLeft: spacing.sm,
+    backgroundColor: colors.danger,
+    borderRadius: radius.control,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

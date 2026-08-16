@@ -105,6 +105,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(res.status, detail);
   }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -134,4 +135,8 @@ export function listInferences(limit = 20, offset = 0): Promise<InferenceListRes
 
 export function getInference(id: string): Promise<InferenceDetail> {
   return request(`/v1/inferences/${id}`);
+}
+
+export function deleteInference(id: string): Promise<void> {
+  return request(`/v1/inferences/${id}`, { method: 'DELETE' });
 }

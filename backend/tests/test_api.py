@@ -94,3 +94,13 @@ def test_history_flow(client):
     assert detail["conf_threshold"] == 0.5
 
     assert client.get("/v1/inferences/nonexistent-id").status_code == 404
+
+
+@requires_model
+def test_delete_inference(client):
+    created = _post_image(client, RADIOGRAPH_2.read_bytes()).json()
+    inference_id = created["inference_id"]
+
+    assert client.delete(f"/v1/inferences/{inference_id}").status_code == 204
+    assert client.get(f"/v1/inferences/{inference_id}").status_code == 404
+    assert client.delete(f"/v1/inferences/{inference_id}").status_code == 404

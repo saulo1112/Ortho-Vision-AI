@@ -67,3 +67,12 @@ def get_inference(inference_id: str, db: Session = Depends(get_db)) -> Inference
         conf_threshold=row.conf_threshold,
         thumbnail_b64=_thumb_b64(row),
     )
+
+
+@router.delete("/{inference_id}", status_code=204)
+def delete_inference(inference_id: str, db: Session = Depends(get_db)) -> None:
+    row = db.get(Inference, inference_id)
+    if row is None:
+        raise HTTPException(404, detail="Inference not found")
+    db.delete(row)
+    db.commit()

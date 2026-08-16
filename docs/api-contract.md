@@ -101,6 +101,12 @@ radiograph is never stored — only its SHA-256, dimensions, and this thumbnail.
 Full stored record: everything `POST /v1/predict` returned, plus
 `conf_threshold` and `thumbnail_b64`. `404` if the id does not exist.
 
+### `DELETE /v1/inferences/{inference_id}`
+
+Permanently removes a stored inference (record + thumbnail). `204` on
+success, `404` if the id does not exist. Used by the mobile app's
+swipe-to-delete gesture on the history screen.
+
 ## Design decisions
 
 - **Sync (def) route for prediction**: FastAPI executes it in a threadpool, so
