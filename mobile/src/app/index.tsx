@@ -8,10 +8,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useScreenWidth } from '../components/screenWidth';
 
 import { listInferences, predictImage } from '../api/client';
 import type { InferenceSummary } from '../api/types';
@@ -31,7 +32,7 @@ interface PickedImage {
 }
 
 export default function HomeScreen() {
-  const { width: windowWidth } = useWindowDimensions();
+  const windowWidth = useScreenWidth();
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);

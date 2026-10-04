@@ -6,10 +6,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useScreenWidth } from '../../components/screenWidth';
 
 import { getInference } from '../../api/client';
 import type { InferenceDetail } from '../../api/types';
@@ -21,7 +22,7 @@ import { colors, fonts, radius, spacing } from '../../theme/tokens';
 
 export default function InferenceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { width: windowWidth } = useWindowDimensions();
+  const windowWidth = useScreenWidth();
   const [detail, setDetail] = useState<InferenceDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 

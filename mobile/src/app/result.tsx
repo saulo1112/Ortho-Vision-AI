@@ -1,6 +1,8 @@
 import { Redirect, router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useScreenWidth } from '../components/screenWidth';
 
 import { DetectionCard } from '../components/DetectionCard';
 import { Disclaimer } from '../components/Disclaimer';
@@ -11,7 +13,7 @@ import { classStyle } from '../theme/classes';
 import { colors, fonts, radius, spacing } from '../theme/tokens';
 
 export default function ResultScreen() {
-  const { width: windowWidth } = useWindowDimensions();
+  const windowWidth = useScreenWidth();
   const analysis = getAnalysis();
   if (!analysis) return <Redirect href="/" />;
 

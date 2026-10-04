@@ -35,5 +35,11 @@ export const radius = {
 
 export const fonts = Platform.select({
   ios: { sans: 'system-ui', rounded: 'ui-rounded', mono: 'ui-monospace' },
+  // Web has no 'normal' family (it falls back to serif); match Android's Roboto.
+  web: {
+    sans: 'Roboto, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif',
+    rounded: 'Roboto, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif',
+    mono: 'ui-monospace, Consolas, Menlo, monospace',
+  },
   default: { sans: 'normal', rounded: 'normal', mono: 'monospace' },
 });
