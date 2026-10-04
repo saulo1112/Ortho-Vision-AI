@@ -80,7 +80,7 @@ export default function InferenceDetailScreen() {
                 label="Image"
                 value={`${detail.image.width}×${detail.image.height}px`}
               />
-              <MetaRow label="Server time" value={`${detail.timing_ms.total} ms`} />
+              <MetaRow label="Inference time" value={`${detail.timing_ms.total} ms`} />
             </View>
           </>
         )}

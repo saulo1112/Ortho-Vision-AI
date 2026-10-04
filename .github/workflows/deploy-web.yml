@@ -1,0 +1,45 @@
+name: Deploy web demo
+
+on:
+  push:
+    branches: [main]
+    paths: ["mobile/**", "model/weights/best.onnx", ".github/workflows/deploy-web.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      # Only the ONNX model is needed (skips best.pt to spare LFS bandwidth).
+      - run: git lfs pull --include="model/weights/best.onnx"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+        working-directory: mobile
+      - run: npm run export:web
+        working-directory: mobile
+      # GitHub Pages has no SPA fallback: serve index.html for unknown routes.
+      - run: cp mobile/dist/index.html mobile/dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

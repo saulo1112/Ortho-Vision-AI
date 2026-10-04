@@ -157,7 +157,29 @@ first one that answers, in this order:
 
 Either way, start the backend first (`npm run backend` from the repo root).
 
-## Deployment
+## Web demo (free, no server)
+
+The same app also runs in the browser with no backend: `mobile/src/api/client.web.ts`
+replaces the HTTP client on web, runs the ONNX model with
+[onnxruntime-web](https://www.npmjs.com/package/onnxruntime-web) (WASM) and keeps the
+history in `localStorage`. The pre/post-processing is a TypeScript port of the backend
+([segmentation.ts](mobile/src/inference/segmentation.ts)); on the test radiographs it
+matches the Python engine (same class, confidence and boxes, mask IoU ≈ 0.96–0.97).
+Images never leave the device.
+
+```bash
+cd mobile
+npm run web          # dev server (copies best.onnx into mobile/public first)
+npm run export:web   # static site in mobile/dist
+```
+
+It deploys to GitHub Pages on every push to `main`
+([workflow](.github/workflows/deploy-web.yml)); enable it under *Settings → Pages →
+Source: GitHub Actions*. The site lives at `/Ortho-Vision-AI` (`experiments.baseUrl` in
+`mobile/app.json`; change it if the repo is renamed). The first analysis downloads the
+47 MB model, which the browser then caches.
+
+## Deployment (API)
 
 The backend ships to [Render](https://render.com) via `render.yaml` (Docker web
 service + managed Postgres). Point Render at this repo and it provisions both

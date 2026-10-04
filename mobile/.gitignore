@@ -4,3 +4,5 @@
 
 expo-env.d.ts
 # @end expo-cli
+# Web demo: copied from model/weights by scripts/copy-model.js
+/public/best.onnx

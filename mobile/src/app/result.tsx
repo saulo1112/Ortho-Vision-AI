@@ -44,7 +44,7 @@ export default function ResultScreen() {
 
         <View style={styles.statsRow}>
           <Stat label="Detections" value={String(response.detections.length)} />
-          <Stat label="Server time" value={`${response.timing_ms.total} ms`} />
+          <Stat label="Inference time" value={`${response.timing_ms.total} ms`} />
           <Stat label="Model" value="v8s-seg" />
         </View>
 
